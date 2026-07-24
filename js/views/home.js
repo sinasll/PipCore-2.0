@@ -11,7 +11,6 @@ PC.views.home = (() => {
   const TASKS = [
     { title: 'Join The Channel', desc: 'Market insights and updates', cta: 'JOIN', icon: 'telegram', fill: true, url: 'https://t.me/pipcore', tg: true },
     { title: 'Boost The Channel', desc: 'Support the community growth', cta: 'BOOST', icon: 'zap', url: 'https://t.me/boost/pipcore', tg: true },
-    { title: 'Follow On X', desc: 'Daily trade breakdowns', cta: 'FOLLOW', icon: 'xbrand', fill: true, url: 'https://x.com/pipcoretg' },
     { title: 'Subscribe On YouTube', desc: 'Deep-dive video lessons', cta: 'SUBSCRIBE', icon: 'youtube', fill: true, url: 'https://youtube.com/@pipcore' },
     { title: 'Watch The Short', desc: 'A quick strategy overview', cta: 'WATCH', icon: 'play', url: 'https://youtube.com/shorts/kjeHpbrR-zw' },
     { title: 'App Tutorial', desc: 'Learn PipCore step by step', cta: 'TUTORIAL', icon: 'cap', url: 'https://youtube.com/shorts/j5P_K4MLNeo' }
@@ -99,8 +98,6 @@ PC.views.home = (() => {
         '<div class="section__head"><h3 class="section__title">' + icon('globe', 14) + '<span>COMMUNITY</span></h3><span class="section__meta">' + TASKS.length + ' LINKS</span></div>',
         '<div class="task-list" id="taskList"></div>',
       '</div>',
-
-      '<p class="footer-note">PIPCORE V2.0<br>BLACK / GOLD — NOTHING ELSE</p>'
     ].join('');
 
     const list = $('#taskList', root);

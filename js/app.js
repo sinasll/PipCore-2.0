@@ -65,7 +65,6 @@ PC.app = (() => {
         '<span class="brand__mark"><img src="assets/logo.png" alt="PipCore"></span>' +
         '<span>' +
           '<span class="brand__name">PIPCORE</span>' +
-          '<span class="brand__tag">TRADE JOURNAL V2</span>' +
         '</span>' +
       '</div>' +
       '<div class="header__actions">' +

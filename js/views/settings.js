@@ -251,7 +251,6 @@ PC.views.settings = (() => {
     if (!grid) return;
     const SOCIALS = [
       { label: 'Telegram', icon: 'telegram', url: 'https://t.me/pipcore' },
-      { label: 'X', icon: 'xbrand', url: 'https://x.com/pipcoretg' },
       { label: 'YouTube', icon: 'youtube', url: 'https://youtube.com/@pipcore' },
       { label: 'Discord', icon: 'discord', url: 'https://discord.gg/UFqRkZGf' }
     ];

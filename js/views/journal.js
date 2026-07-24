@@ -19,15 +19,18 @@ PC.views.journal = (() => {
   let customDate = '';
   let searchText = '';
   let prefillDate = null;
+  let formOptionSignature = '';
 
   /* ---------------------------------------------------------
      Trade form builder — shared by quick-add and edit sheet
   --------------------------------------------------------- */
-  function buildForm(hostEl, trade) {
+  function buildForm(hostEl, trade, opts = {}) {
     const S = PC.store;
+    const seed = trade || null;
+    const isEdit = !!opts.isEdit;
     const now = new Date();
-    const defDate = trade ? trade.date : (prefillDate || S.todayKey());
-    const defTime = trade ? trade.time : String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    const defDate = seed ? seed.date : (prefillDate || S.todayKey());
+    const defTime = seed ? seed.time : String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
 
     function opts(list, sel) {
       return S.getList(list).map((v) =>
@@ -42,30 +45,30 @@ PC.views.journal = (() => {
           '<div class="field"><label>Time</label><input type="time" class="input" id="fTime" value="' + esc(defTime) + '"></div>',
         '</div>',
         '<div class="grid-2">',
-          '<div class="field"><label>Session</label><div class="select-wrap"><select class="select" id="fSession">' + opts('sessions', trade ? trade.session : '') + '</select></div></div>',
-          '<div class="field"><label>Pair</label><div class="select-wrap"><select class="select" id="fPair">' + opts('pairs', trade ? trade.pair : '') + '</select></div></div>',
+          '<div class="field"><label>Session</label><div class="select-wrap"><select class="select" id="fSession">' + opts('sessions', seed ? seed.session : '') + '</select></div></div>',
+          '<div class="field"><label>Pair</label><div class="select-wrap"><select class="select" id="fPair">' + opts('pairs', seed ? seed.pair : '') + '</select></div></div>',
         '</div>',
         '<div class="grid-2">',
-          '<div class="field"><label>Setup</label><div class="select-wrap"><select class="select" id="fSetup">' + opts('setups', trade ? trade.setup : '') + '</select></div></div>',
-          '<div class="field"><label>Entry</label><div class="select-wrap"><select class="select" id="fEntry">' + opts('entries', trade ? trade.entry : '') + '</select></div></div>',
+          '<div class="field"><label>Setup</label><div class="select-wrap"><select class="select" id="fSetup">' + opts('setups', seed ? seed.setup : '') + '</select></div></div>',
+          '<div class="field"><label>Entry</label><div class="select-wrap"><select class="select" id="fEntry">' + opts('entries', seed ? seed.entry : '') + '</select></div></div>',
         '</div>',
-        '<div class="field"><label>Timeframe</label><div class="select-wrap"><select class="select" id="fTimeframe">' + opts('timeframes', trade ? trade.timeframe : '') + '</select></div></div>',
+        '<div class="field"><label>Timeframe</label><div class="select-wrap"><select class="select" id="fTimeframe">' + opts('timeframes', seed ? seed.timeframe : '') + '</select></div></div>',
         '<div class="field"><label>Direction</label><div id="fDir"></div></div>',
         '<div class="field"><label>Pips</label>',
           '<div class="stepper">',
             '<button type="button" class="icon-btn" id="fMinus" aria-label="Decrease">' + icon('minus', 14) + '</button>',
-            '<input type="number" class="input" id="fPips" inputmode="decimal" min="0" step="0.1" value="' + esc(trade ? String(trade.pips) : '0') + '">',
+            '<input type="text" class="input" id="fPips" inputmode="decimal" autocomplete="off" spellcheck="false" enterkeyhint="done" value="' + esc(seed ? String(seed.pips) : '0') + '">',
             '<button type="button" class="icon-btn" id="fPlus" aria-label="Increase">' + icon('plus', 14) + '</button>',
           '</div>',
         '</div>',
         '<div class="field"><label>Outcome</label><div id="fOutcome"></div></div>',
-        '<button class="btn btn--block" id="fSubmit">' + icon('check', 15) + (trade ? 'Save Changes' : 'Log Trade') + '</button>',
+        '<button class="btn btn--block" id="fSubmit">' + icon('check', 15) + (isEdit ? 'Save Changes' : 'Log Trade') + '</button>',
       '</div>'
     ].join('');
 
     const state = {
-      buySell: trade ? trade.buySell : 'Buy',
-      outcome: trade ? trade.outcome : 'Win'
+      buySell: seed ? seed.buySell : 'Buy',
+      outcome: seed ? seed.outcome : 'Win'
     };
 
     $('#fDir', hostEl).appendChild(PC.ui.segment(
@@ -78,8 +81,19 @@ PC.views.journal = (() => {
     ));
 
     const pips = $('#fPips', hostEl);
+    const normalizePipsText = (raw, { forBlur = false } = {}) => {
+      let txt = String(raw == null ? '' : raw).replace(/,/g, '.').replace(/[^0-9.]/g, '');
+      const dot = txt.indexOf('.');
+      if (dot !== -1) txt = txt.slice(0, dot + 1) + txt.slice(dot + 1).replace(/\./g, '');
+      if (txt.startsWith('.')) txt = '0' + txt;
+      if (!forBlur && txt === '0') return txt;
+      if (!forBlur && /\.$/.test(txt)) return txt;
+      const v = parseFloat(txt);
+      if (!Number.isFinite(v)) return forBlur ? '0' : txt;
+      return String(Math.round(Math.max(0, v) * 100) / 100);
+    };
     const step = (d) => {
-      let v = parseFloat(pips.value);
+      let v = parseFloat(normalizePipsText(pips.value, { forBlur: true }));
       if (!Number.isFinite(v)) v = 0;
       v = Math.max(0, Math.round((v + d) * 10) / 10);
       pips.value = String(v);
@@ -89,10 +103,12 @@ PC.views.journal = (() => {
     $('#fPlus', hostEl).addEventListener('click', () => step(1));
 
     pips.addEventListener('focus', () => { if (pips.value === '0') pips.value = ''; });
+    pips.addEventListener('input', () => {
+      const next = normalizePipsText(pips.value);
+      if (next !== pips.value) pips.value = next;
+    });
     pips.addEventListener('blur', () => {
-      let v = parseFloat(pips.value);
-      if (!Number.isFinite(v) || v < 0) v = 0;
-      pips.value = String(Math.round(v * 100) / 100);
+      pips.value = normalizePipsText(pips.value, { forBlur: true });
     });
     pips.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); pips.blur(); } });
 
@@ -128,6 +144,29 @@ PC.views.journal = (() => {
       },
       refreshOptions() { /* full rebuild keeps it simple */ }
     };
+  }
+
+  function getFormOptionSignature() {
+    const S = PC.store;
+    return JSON.stringify({
+      sessions: S.getList('sessions'),
+      pairs: S.getList('pairs'),
+      setups: S.getList('setups'),
+      entries: S.getList('entries'),
+      timeframes: S.getList('timeframes')
+    });
+  }
+
+  function wireQuickAddForm(seed) {
+    formOptionSignature = getFormOptionSignature();
+    form = buildForm($('#formHost', root), seed || null, { isEdit: false });
+    form.onSubmit((vals) => {
+      if (!Number.isFinite(vals.pips) || vals.pips < 0) { toast('Pips must be zero or more', 'error'); return; }
+      PC.store.addTrade(vals);
+      form.resetSoft();
+      prefillDate = null;
+      toast('Trade logged · ' + fmtPips(PC.store.signedPips(vals), true), 'success');
+    });
   }
 
   /* ---------------------------------------------------------
@@ -276,7 +315,7 @@ PC.views.journal = (() => {
     const t = PC.store.getTrades().find((x) => x.id === id);
     if (!t) return;
     const wrap = el('<div></div>');
-    const f = buildForm(wrap, t);
+    const f = buildForm(wrap, t, { isEdit: true });
     const sheet = PC.ui.openSheet(wrap, { title: 'Edit Trade', icon: 'pencil' });
     f.onSubmit((vals) => {
       PC.store.updateTrade(id, vals);
@@ -362,14 +401,7 @@ PC.views.journal = (() => {
       '</div>'
     ].join('');
 
-    form = buildForm($('#formHost', root), null);
-    form.onSubmit((vals) => {
-      if (!Number.isFinite(vals.pips) || vals.pips < 0) { toast('Pips must be zero or more', 'error'); return; }
-      PC.store.addTrade(vals);
-      form.resetSoft();
-      prefillDate = null;
-      toast('Trade logged · ' + fmtPips(PC.store.signedPips(vals), true), 'success');
-    });
+    wireQuickAddForm();
 
     // filter chips
     const chips = $('#filterChips', root);
@@ -401,14 +433,17 @@ PC.views.journal = (() => {
   }
 
   function render() {
-    // rebuild the form if option lists changed
-    form = buildForm($('#formHost', root), null);
-    form.onSubmit((vals) => {
-      PC.store.addTrade(vals);
-      form.resetSoft();
-      prefillDate = null;
-      toast('Trade logged · ' + fmtPips(PC.store.signedPips(vals), true), 'success');
-    });
+    const nextSig = getFormOptionSignature();
+    const active = document.activeElement;
+    const isEditingForm = !!(active && root && root.contains(active) && /^f(Date|Time|Session|Pair|Setup|Entry|Timeframe|Pips)$/.test(active.id));
+
+    if (!form || !$('#fRoot', root)) {
+      wireQuickAddForm();
+    } else if (nextSig !== formOptionSignature && !isEditingForm) {
+      const currentVals = form.read();
+      wireQuickAddForm(currentVals);
+    }
+
     renderHistory();
   }
 

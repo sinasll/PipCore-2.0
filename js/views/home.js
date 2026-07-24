@@ -11,24 +11,41 @@ PC.views.home = (() => {
   const TASKS = [
     { title: 'Join The Channel', desc: 'Market insights and updates', cta: 'JOIN', icon: 'telegram', fill: true, url: 'https://t.me/pipcore', tg: true },
     { title: 'Boost The Channel', desc: 'Support the community growth', cta: 'BOOST', icon: 'zap', url: 'https://t.me/boost/pipcore', tg: true },
-    { title: 'Subscribe On YouTube', desc: 'Deep-dive video lessons', cta: 'SUBSCRIBE', icon: 'youtube', fill: true, url: 'https://youtube.com/@pipcore' },
-    { title: 'Watch The Short', desc: 'A quick strategy overview', cta: 'WATCH', icon: 'play', url: 'https://youtube.com/shorts/kjeHpbrR-zw' },
+    { title: 'Subscribe On YouTube', desc: 'Learn more about the app', cta: 'SUBSCRIBE', icon: 'youtube', fill: true, url: 'https://youtube.com/@pipcore' },
+    { title: 'Watch The Short', desc: 'Like the video', cta: 'WATCH', icon: 'play', url: 'https://youtube.com/shorts/kjeHpbrR-zw' },
     { title: 'App Tutorial', desc: 'Learn PipCore step by step', cta: 'TUTORIAL', icon: 'cap', url: 'https://youtube.com/shorts/j5P_K4MLNeo' }
   ];
 
   let root;
+  let profileRefreshTimer = null;
+
+  function profileLabel(p) {
+    if (p && p.username) return '@' + String(p.username).replace(/^@+/, '');
+    if (p && p.firstName) return p.firstName;
+    if (p && p.fullName) return String(p.fullName).trim().split(/\s+/)[0] || 'Guest';
+    return 'Guest';
+  }
+
+  function profileAvatarUrl(src) {
+    if (!src) return '';
+    try {
+      const url = new URL(src, location.href);
+      url.searchParams.set('_pc', String(Date.now()));
+      return url.href;
+    } catch (_) {
+      const raw = String(src);
+      return raw + (raw.includes('?') ? '&' : '?') + '_pc=' + Date.now();
+    }
+  }
 
   function heroProfile() {
     const p = PC.tg.profile();
     const avatar = $('#homeAvatar');
     if (!avatar) return;
     avatar.innerHTML = p.avatar
-      ? '<span class="avatar__fallback">' + esc(p.initials) + '</span><img src="' + esc(p.avatar) + '" alt="profile photo" onerror="this.remove()">'
-      : '<span class="avatar__fallback">' + esc(p.initials) + '</span>';
-    $('#homeHandle').textContent = p.handle;
-    const sub = $('#homeSub');
-    if (p.id === null) sub.textContent = 'OPEN IN TELEGRAM TO SYNC';
-    else sub.textContent = (p.username ? esc(p.fullName).toUpperCase() : 'ID ' + p.id) || 'PIPCORE MEMBER';
+      ? '<img src="' + esc(profileAvatarUrl(p.avatar)) + '" alt="profile photo" referrerpolicy="no-referrer">'
+      : '<span class="avatar__fallback" aria-hidden="true"></span>';
+    $('#homeHandle').textContent = profileLabel(p);
   }
 
   function snapshot() {
@@ -61,7 +78,6 @@ PC.views.home = (() => {
         '<div class="avatar" id="homeAvatar"></div>',
         '<div class="profile-meta">',
           '<h2 id="homeHandle">@guest</h2>',
-          '<p id="homeSub">PIPCORE TRADER</p>',
           '<div class="flex flex--wrap mt-2" id="snapToday"></div>',
         '</div>',
       '</div>',
@@ -72,13 +88,13 @@ PC.views.home = (() => {
         '<div class="stat"><span class="stat__label">' + icon('activity', 11) + 'TRADES</span><span class="stat__value" id="snapCount">0</span></div>',
       '</div>',
 
-      '<div class="section">',
-        '<div class="section__head"><h3 class="section__title">' + icon('wallet', 14) + '<span>WALLET</span></h3></div>',
-        '<div class="card t-c" id="walletCard">',
-          '<p class="t-xs t-dim" style="margin-bottom:12px;letter-spacing:.12em">CONNECT A TON WALLET TO GET READY FOR ON-CHAIN PERKS</p>',
-          '<div id="ton-connect-root"></div>',
-        '</div>',
-      '</div>',
+'<div class="section" style="display:none;">',
+  '<div class="section__head"><h3 class="section__title">' + icon('wallet', 14) + '<span>WALLET</span></h3></div>',
+  '<div class="card t-c" id="walletCard">',
+    '<p class="t-xs t-dim" style="margin-bottom:12px;letter-spacing:.12em">CONNECT A TON WALLET TO GET READY FOR ON-CHAIN PERKS</p>',
+    '<div id="ton-connect-root"></div>',
+  '</div>',
+'</div>',
 
       '<div class="section">',
         '<div class="section__head"><h3 class="section__title">' + icon('send', 14) + '<span>INVITE TRADERS</span></h3></div>',
@@ -124,6 +140,19 @@ PC.views.home = (() => {
       const ok = await PC.tg.copyText(INVITE_TEXT + '\n\n' + INVITE_URL);
       toast(ok ? 'Invite link copied' : 'Copy failed', ok ? 'success' : 'error');
     });
+
+    if (!init._profileRefreshBound) {
+      init._profileRefreshBound = true;
+      window.addEventListener('focus', heroProfile);
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) heroProfile();
+      });
+    }
+    if (!profileRefreshTimer) {
+      profileRefreshTimer = setInterval(() => {
+        if (!document.hidden) heroProfile();
+      }, 30000);
+    }
 
     initTon();
   }

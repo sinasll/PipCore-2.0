@@ -13,14 +13,26 @@ PC.app = (() => {
   let pendingJournalPrefill = null;
 
   /* ---------- theme ---------- */
+  function paintThemeToggle(theme) {
+    const btn = PC.ui.$('#themeToggle');
+    if (!btn) return;
+    btn.innerHTML = '<span aria-hidden="true" style="display:flex;align-items:center;justify-content:center;pointer-events:none">' + PC.ui.icon(theme === 'dark' ? 'sun' : 'moon', 17) + '</span>';
+    btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to gold theme' : 'Switch to night theme');
+    btn.style.color = 'var(--fg)';
+    btn.style.opacity = '1';
+    const svg = btn.querySelector('svg');
+    if (svg) {
+      svg.style.display = 'block';
+      svg.style.opacity = '1';
+      svg.style.visibility = 'visible';
+      svg.style.pointerEvents = 'none';
+    }
+  }
+
   function applyTheme(theme, silent) {
     document.documentElement.setAttribute('data-theme', theme);
     document.body.setAttribute('data-theme', theme); // legacy hook
-    const btn = PC.ui.$('#themeToggle');
-    if (btn) {
-      btn.innerHTML = PC.ui.icon(theme === 'dark' ? 'sun' : 'moon', 17);
-      btn.setAttribute('aria-label', theme === 'dark' ? 'Switch to gold theme' : 'Switch to night theme');
-    }
+    paintThemeToggle(theme);
     PC.tg.applyTheme(theme);
     if (!silent) {
       PC.store.updateSettings({ theme });
@@ -68,9 +80,10 @@ PC.app = (() => {
         '</span>' +
       '</div>' +
       '<div class="header__actions">' +
-        '<button class="icon-btn" id="themeToggle" aria-label="Toggle theme"></button>' +
+        '<button class="icon-btn" id="themeToggle" type="button" aria-label="Toggle theme"></button>' +
       '</div>';
     PC.ui.$('#themeToggle').addEventListener('click', toggleTheme);
+    paintThemeToggle(PC.store.getSettings().theme);
 
     const bar = PC.ui.$('#tabbar');
     bar.innerHTML = '';

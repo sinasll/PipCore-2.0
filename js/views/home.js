@@ -9,11 +9,11 @@ PC.views.home = (() => {
   const INVITE_TEXT = 'Join PipCore and track your trading journey! PipCore is all you need.';
 
   const TASKS = [
-    { title: 'Join The Channel', desc: 'Market insights and updates', cta: 'JOIN', icon: 'telegram', fill: true, url: 'https://t.me/pipcore', tg: true },
-    { title: 'Boost The Channel', desc: 'Support the community growth', cta: 'BOOST', icon: 'zap', url: 'https://t.me/boost/pipcore', tg: true },
-    { title: 'Subscribe On YouTube', desc: 'Learn more about the app', cta: 'SUBSCRIBE', icon: 'youtube', fill: true, url: 'https://youtube.com/@pipcore' },
-    { title: 'Watch The Short', desc: 'Like the video', cta: 'WATCH', icon: 'play', url: 'https://youtube.com/shorts/kjeHpbrR-zw' },
-    { title: 'App Tutorial', desc: 'Learn PipCore step by step', cta: 'TUTORIAL', icon: 'cap', url: 'https://youtube.com/shorts/j5P_K4MLNeo' }
+    { title: 'Join The Channel', cta: 'JOIN', icon: 'telegram', fill: true, url: 'https://t.me/pipcore', tg: true },
+    { title: 'Boost The Channel', cta: 'BOOST', icon: 'zap', url: 'https://t.me/boost/pipcore', tg: true },
+    { title: 'Subscribe On YouTube', cta: 'SUBSCRIBE', icon: 'youtube', fill: true, url: 'https://youtube.com/@pipcore' },
+    { title: 'Watch The Short', cta: 'WATCH', icon: 'play', url: 'https://youtube.com/shorts/kjeHpbrR-zw' },
+    { title: 'App Tutorial', cta: 'TUTORIAL', icon: 'cap', url: 'https://youtube.com/shorts/j5P_K4MLNeo' }
   ];
 
   let root;
@@ -96,19 +96,16 @@ PC.views.home = (() => {
   '</div>',
 '</div>',
 
-      '<div class="section">',
-        '<div class="section__head"><h3 class="section__title">' + icon('send', 14) + '<span>INVITE TRADERS</span></h3></div>',
-        '<div class="card">',
-          '<p class="t-xs t-dim" style="line-height:1.9">SHARE YOUR JOURNAL. RANK UP TOGETHER. SEND PIPCORE TO YOUR TRADING FRIENDS AND BUILD THE SQUAD.</p>',
-          '<div class="flex flex--wrap mt-3" style="justify-content:space-between">',
-            '<span class="link-inline">' + icon('link', 12) + '<span>t.me/pipcorebot</span></span>',
-          '</div>',
-          '<div class="btn-row mt-3">',
-            '<button class="btn" id="inviteShare">' + icon('telegram', 15) + 'Share</button>',
-            '<button class="btn btn--ghost" id="inviteCopy">' + icon('copy', 15) + 'Copy Link</button>',
-          '</div>',
-        '</div>',
-      '</div>',
+'<div class="section">',
+  '<div class="section__head"><h3 class="section__title">' + icon('send', 14) + '<span>INVITE TRADERS</span></h3></div>',
+  '<div class="card">',
+    '<p class="t-xs t-dim" style="line-height:1.9">INVITE FRIENDS TO DISCOVER PIPCORE AND TRACK THEIR TRADES.</p>',
+    '<div class="btn-row mt-3">',
+      '<button class="btn" id="inviteShare">' + icon('telegram', 15) + 'Share</button>',
+      '<button class="btn btn--ghost" id="inviteCopy">' + icon('copy', 15) + 'Copy Link</button>',
+    '</div>',
+  '</div>',
+'</div>',
 
       '<div class="section">',
         '<div class="section__head"><h3 class="section__title">' + icon('globe', 14) + '<span>COMMUNITY</span></h3><span class="section__meta">' + TASKS.length + ' LINKS</span></div>',

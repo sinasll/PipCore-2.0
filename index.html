@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <title>PipCore</title>
+  <link rel="icon" href="assets/logo.png" type="image/png">
+
+  <!-- Fonts (brand typeface — do not change) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <!-- App styles -->
+  <link href="css/app.css" rel="stylesheet" type="text/css">
+
+  <!-- Theme pre-paint (prevents flash) -->
+  <script>
+    (function () {
+      try {
+        var t = JSON.parse(localStorage.getItem('theme'));
+        if (t !== 'light' && t !== 'dark') t = 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+        var mc = document.querySelector('meta[name="theme-color"]');
+        if (mc) mc.setAttribute('content', t === 'light' ? '#E6B33C' : '#000000');
+      } catch (e) {}
+    })();
+  </script>
+
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- TON Connect UI (wallet on Home) -->
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js" async></script>
+
+  <!-- Exporters -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+
+  <!-- Telegram Analytics SDK -->
+  <script async src="https://tganalytics.xyz/index.js" onload="initAnalytics()" type="text/javascript"></script>
+  <script>
+    function initAnalytics() {
+      try {
+        window.telegramAnalytics.init({
+          token: 'eyJhcHBfbmFtZSI6IlBpcENvcmUiLCJhcHBfdXJsIjoiaHR0cHM6Ly90Lm1lL3BpcGNvcmVib3Q/cHJvZmlsZSIsImFwcF9kb21haW4iOiJodHRwczovL3NpbmFzbGwuZ2l0aHViLmlvL1BpcENvcmUvIn0=!4SggM7v6aszOEalTectRvX5S+cTTBpCO2d/vQk+ouYs=',
+          appName: 'PipCore'
+        });
+      } catch (e) {}
+    }
+  </script>
+</head>
+
+<body>
+  <div id="app">
+    <!-- Top chrome -->
+    <header class="app-header app-header--center" id="appHeader"></header>
+
+    <!-- Views -->
+    <main id="views">
+      <section class="view" id="view-home"><div class="view__inner"></div></section>
+      <section class="view" id="view-stats"><div class="view__inner"></div></section>
+      <section class="view" id="view-journal"><div class="view__inner"></div></section>
+      <section class="view" id="view-calendar"><div class="view__inner"></div></section>
+      <section class="view" id="view-settings"><div class="view__inner"></div></section>
+    </main>
+
+    <!-- Bottom navigation -->
+    <nav id="tabbar" role="tablist" aria-label="Main navigation"></nav>
+  </div>
+
+  <div id="toasts" aria-live="polite"></div>
+
+  <!-- App core (classic scripts, order matters) -->
+  <script src="js/icons.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/stats.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/telegram.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/views/home.js"></script>
+  <script src="js/views/stats.js"></script>
+  <script src="js/views/journal.js"></script>
+  <script src="js/views/calendar.js"></script>
+  <script src="js/views/settings.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- Firebase: anonymous user presence (kept from v1, hardened) -->
+  <script>
+    (function () {
+      async function track() {
+        try {
+          var tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+          var user = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+          if (!user || !user.id) return;
+
+          var appMod = await import('https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js');
+          var fsMod = await import('https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js');
+
+          var app = appMod.initializeApp({
+            apiKey: 'AIzaSyCYmKRkH_daqnXsNaVkiMr9GltPpdLHb2A',
+            authDomain: 'betapro90ject.firebaseapp.com',
+            projectId: 'betapro90ject',
+            storageBucket: 'betapro90ject.firebasestorage.app',
+            messagingSenderId: '585434721205',
+            appId: '1:585434721205:web:a13058305f13b6c0eb47fc'
+          });
+          var db = fsMod.initializeFirestore(app, { experimentalForceLongPolling: true });
+          var ref = fsMod.doc(db, 'users', String(user.id));
+
+          var snap = await fsMod.getDoc(ref);
+          var payload = {
+            telegramId: String(user.id),
+            username: user.username || user.first_name || 'Anonymous',
+            firstName: user.first_name || 'Anonymous',
+            lastName: user.last_name || null,
+            languageCode: user.language_code || 'en',
+            photoUrl: user.photo_url || null,
+            appVersion: '2.0.0',
+            lastActive: fsMod.serverTimestamp()
+          };
+          if (!snap.exists()) payload.joinedAt = fsMod.serverTimestamp();
+          await fsMod.setDoc(ref, payload, { merge: true });
+        } catch (e) { /* tracking is best-effort */ }
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', track);
+      } else { track(); }
+    })();
+  </script>
+
+  <noscript>
+    <div style="font-family:monospace;text-align:center;padding:40px 20px;color:#E6B33C">
+      PipCore needs JavaScript to run. Please enable it and reload.
+    </div>
+  </noscript>
+</body>
+</html>

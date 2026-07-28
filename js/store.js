@@ -179,15 +179,22 @@ PC.store = (() => {
 
   /* ---------- settings ---------- */
   const SETTING_DEFAULTS = { theme: 'dark', weekStart: 'mon', haptics: true };
+  function normalizeSettings(input) {
+    const next = Object.assign({}, SETTING_DEFAULTS, input && typeof input === 'object' ? input : {});
+    next.theme = next.theme === 'light' ? 'light' : 'dark';
+    next.weekStart = next.weekStart === 'sun' ? 'sun' : 'mon';
+    next.haptics = !!next.haptics;
+    return next;
+  }
   function getSettings() {
-    const s = read(K.settings, {});
+    const s = normalizeSettings(read(K.settings, {}));
     // migrate legacy standalone theme key
     let theme = read(K.theme, null);
-    if (typeof theme !== 'string') theme = null;
-    return Object.assign({}, SETTING_DEFAULTS, s, theme ? { theme } : {});
+    if (theme !== 'light' && theme !== 'dark') theme = null;
+    return normalizeSettings(Object.assign({}, s, theme ? { theme } : {}));
   }
   function updateSettings(patch) {
-    const next = Object.assign(getSettings(), patch);
+    const next = normalizeSettings(Object.assign(getSettings(), patch));
     write(K.settings, next);
     if (patch && Object.prototype.hasOwnProperty.call(patch, 'theme')) {
       try { localStorage.setItem(K.theme, JSON.stringify(next.theme)); } catch (e) {}
@@ -237,6 +244,13 @@ PC.store = (() => {
       LIST_KEYS.forEach((k) => {
         if (Array.isArray(json.options[k])) write(K[k], json.options[k].filter((x) => typeof x === 'string'));
       });
+    }
+    if (json.settings && typeof json.settings === 'object') {
+      const nextSettings = normalizeSettings(json.settings);
+      write(K.settings, nextSettings);
+      try { localStorage.setItem(K.theme, JSON.stringify(nextSettings.theme)); } catch (e) {}
+      PC.bus.emit('theme', nextSettings.theme);
+      PC.bus.emit('settings', nextSettings);
     }
     PC.bus.emit('trades');
     PC.bus.emit('options', {});

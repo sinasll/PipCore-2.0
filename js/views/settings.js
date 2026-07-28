@@ -7,38 +7,39 @@ PC.views.settings = (() => {
   const { $, $$, el, esc, icon, toast } = PC.ui;
 
   const LISTS = [
-    { type: 'setups', label: 'Setups', icon: 'layers', desc: 'Your playbook setups' },
-    { type: 'entries', label: 'Entries', icon: 'target', desc: 'Entry models and triggers' },
-    { type: 'timeframes', label: 'Timeframes', icon: 'clock', desc: 'Chart timeframes' },
-    { type: 'pairs', label: 'Pairs', icon: 'trend-up', desc: 'Instruments you trade' },
-    { type: 'sessions', label: 'Sessions', icon: 'globe', desc: 'Market sessions' }
+    { type: 'setups', label: 'Setups', icon: 'layers', desc: 'Your trade setups' },
+    { type: 'entries', label: 'Entries', icon: 'target', desc: 'How you enter trades' },
+    { type: 'timeframes', label: 'Timeframes', icon: 'clock', desc: 'Your chart timeframes' },
+    { type: 'pairs', label: 'Pairs', icon: 'trend-up', desc: 'Markets you trade' },
+    { type: 'sessions', label: 'Sessions', icon: 'globe', desc: 'Your trading sessions' }
   ];
 
   let root;
   let openPanels = {};
+  let optionDrafts = {};
 
   function init() {
     root = $('#view-settings .view__inner');
     root.innerHTML = [
       /* ---------- appearance ---------- */
       '<div class="section" style="margin-top:0">',
-        '<div class="section__head"><h3 class="section__title">' + icon('sliders', 14) + '<span>PREFERENCES</span></h3></div>',
+        '<div class="section__head"><h3 class="section__title">' + icon('sliders', 14) + '<span>APP</span></h3></div>',
         '<div class="card"><div class="rows" id="prefRows"></div></div>',
       '</div>',
 
       /* ---------- options ---------- */
       '<div class="section">',
-        '<div class="section__head"><h3 class="section__title">' + icon('grid', 14) + '<span>TRADE OPTIONS</span></h3><span class="section__meta" id="optMeta"></span></div>',
+        '<div class="section__head"><h3 class="section__title">' + icon('grid', 14) + '<span>TRADE LISTS</span></h3><span class="section__meta" id="optMeta"></span></div>',
         '<div id="listsHost"></div>',
       '</div>',
 
       /* ---------- data ---------- */
       '<div class="section">',
-        '<div class="section__head"><h3 class="section__title">' + icon('database', 14) + '<span>DATA</span></h3></div>',
+        '<div class="section__head"><h3 class="section__title">' + icon('database', 14) + '<span>BACKUP</span></h3></div>',
         '<div class="card">',
           '<div class="rows">',
-            '<div class="row"><div class="row__main"><div class="row__title">Backup Everything</div><div class="row__desc">Trades, options and preferences in one JSON file.</div></div><button class="btn--sm btn btn--ghost" id="backupBtn">' + icon('download', 13) + 'Backup</button></div>',
-            '<div class="row"><div class="row__main"><div class="row__title">Restore Backup</div><div class="row__desc">Import a PipCore backup file. Choose merge or replace.</div></div><button class="btn--sm btn btn--ghost" id="restoreBtn">' + icon('upload', 13) + 'Restore</button></div>',
+            '<div class="row"><div class="row__main"><div class="row__title">Export backup</div><div class="row__desc">Save trades, lists and settings in one file.</div></div><button class="btn--sm btn btn--ghost" id="backupBtn">' + icon('download', 13) + 'Export</button></div>',
+            '<div class="row"><div class="row__main"><div class="row__title">Import backup</div><div class="row__desc">Load a backup file and merge or replace.</div></div><button class="btn--sm btn btn--ghost" id="restoreBtn">' + icon('upload', 13) + 'Import</button></div>',
           '</div>',
           '<input type="file" id="restoreFile" accept=".json,application/json" class="hidden">',
         '</div>',
@@ -46,11 +47,11 @@ PC.views.settings = (() => {
 
       /* ---------- danger ---------- */
       '<div class="section">',
-        '<div class="section__head"><h3 class="section__title">' + icon('alert', 14) + '<span>DANGER ZONE</span></h3></div>',
+        '<div class="section__head"><h3 class="section__title">' + icon('alert', 14) + '<span>RESET</span></h3></div>',
         '<div class="card danger-card">',
           '<div class="rows">',
-            '<div class="row"><div class="row__main"><div class="row__title">Reset Option Lists</div><div class="row__desc">Restore setups, entries, timeframes, pairs and sessions to factory defaults. Trades stay untouched.</div></div><button class="btn--sm btn btn--danger" id="resetOptsBtn">Reset</button></div>',
-            '<div class="row"><div class="row__main"><div class="row__title">Delete All Trades</div><div class="row__desc">Erase the entire journal from this device. Consider a backup first — this cannot be undone.</div></div><button class="btn--sm btn btn--danger" id="wipeBtn">' + icon('trash', 13) + 'Delete</button></div>',
+            '<div class="row"><div class="row__main"><div class="row__title">Reset trade lists</div><div class="row__desc">Bring your setups, entries, timeframes, pairs and sessions back to default.</div></div><button class="btn--sm btn btn--danger" id="resetOptsBtn">Reset</button></div>',
+            '<div class="row"><div class="row__main"><div class="row__title">Delete all trades</div><div class="row__desc">Clear your journal from this device.</div></div><button class="btn--sm btn btn--danger" id="wipeBtn">' + icon('trash', 13) + 'Delete</button></div>',
           '</div>',
         '</div>',
       '</div>',
@@ -61,17 +62,16 @@ PC.views.settings = (() => {
         '<div class="card t-c card--pad-lg">',
           '<img src="assets/mark.png" alt="PipCore" style="width:64px;height:64px;border-radius:16px;border:1px solid var(--line-strong);margin:0 auto 14px;display:block">',
           '<div class="h-2">PIPCORE</div>',
-          '<div class="t-xs t-dim" style="margin-top:8px;letter-spacing:.14em">VERSION 2.0.0</div>',
-          '<p class="t-xs t-dim" style="margin-top:16px;line-height:2">A PROFESSIONAL TRADING JOURNAL BUILT FOR DISCIPLINE. LOG TRADES IN SECONDS, READ YOUR EDGE IN NUMBERS, STAY ACCOUNTABLE EVERY DAY.</p>',
+          '<p class="t-xs t-dim" style="margin-top:16px;line-height:2">A simple trading journal to help you stay sharp and consistent.</p>',
         '</div>',
       '</div>',
 
       '<div class="section">',
-        '<div class="section__head"><h3 class="section__title">' + icon('globe', 14) + '<span>COMMUNITY</span></h3></div>',
-        '<div class="social-grid" id="socialGrid"></div>',
+        '<div class="section__head" style="justify-content:center;text-align:center"><h3 class="section__title" style="margin:0 auto">' + icon('globe', 14) + '<span>COMMUNITY</span></h3></div>',
+        '<div class="social-grid" id="socialGrid" style="display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:12px"></div>',
       '</div>',
 
-      '<p class="footer-note">Built for traders, by traders<br>© 2026 PipCore. All rights reserved.</p>'
+      '<p class="footer-note">Built for traders<br>© 2026 PipCore</p>'
     ].join('');
 
     buildPrefs();
@@ -90,7 +90,7 @@ PC.views.settings = (() => {
     // theme
     const themeRow = el(
       '<div class="row">' +
-        '<div class="row__main"><div class="row__title">Theme</div><div class="row__desc">Night (black) or Gold — the two official PipCore skins.</div></div>' +
+        '<div class="row__main"><div class="row__title">Theme</div><div class="row__desc">Pick dark or gold.</div></div>' +
         '<div class="row__end"></div>' +
       '</div>'
     );
@@ -105,7 +105,7 @@ PC.views.settings = (() => {
     // week start
     const wkRow = el(
       '<div class="row">' +
-        '<div class="row__main"><div class="row__title">Week Starts On</div><div class="row__desc">Calendar grid alignment.</div></div>' +
+        '<div class="row__main"><div class="row__title">Week starts</div><div class="row__desc">Choose the first day.</div></div>' +
         '<div class="row__end"></div>' +
       '</div>'
     );
@@ -120,7 +120,7 @@ PC.views.settings = (() => {
     // haptics
     const hRow = el(
       '<div class="row">' +
-        '<div class="row__main"><div class="row__title">Haptic Feedback</div><div class="row__desc">Telegram vibration on taps and actions.</div></div>' +
+        '<div class="row__main"><div class="row__title">Haptics</div><div class="row__desc">Small vibration on taps.</div></div>' +
         '<div class="row__end"></div>' +
       '</div>'
     );
@@ -164,7 +164,7 @@ PC.views.settings = (() => {
           '<div data-acc-body class="' + (open ? '' : 'hidden') + '">' +
             '<div class="acc__list" data-rows></div>' +
             '<div class="flex mt-3">' +
-              '<input class="input" data-add-input placeholder="NEW ' + esc(L.label.toUpperCase().slice(0, -1)) + '..." maxlength="40" style="flex:1">' +
+              '<input class="input" data-add-input placeholder="NEW ' + esc(L.label.toUpperCase().slice(0, -1)) + '..." maxlength="40" style="flex:1" value="' + esc(optionDrafts[L.type] || '') + '">' +
               '<button class="icon-btn" data-add-btn aria-label="Add">' + icon('plus', 15) + '</button>' +
             '</div>' +
             '<div class="flex--between mt-3">' +
@@ -183,7 +183,7 @@ PC.views.settings = (() => {
 
       const rows = card.querySelector('[data-rows]');
       if (!items.length) {
-        rows.appendChild(el('<p class="t-xs t-dim" style="padding:10px 2px">NO OPTIONS — ADD YOUR FIRST BELOW.</p>'));
+        rows.appendChild(el('<p class="t-xs t-dim" style="padding:10px 2px">No items yet. Add one below.</p>'));
       }
       items.forEach((name, idx) => {
         const usedBy = usage[L.type][name] || 0;
@@ -215,12 +215,14 @@ PC.views.settings = (() => {
       });
 
       const addInput = card.querySelector('[data-add-input]');
+      addInput.addEventListener('input', () => { optionDrafts[L.type] = addInput.value; });
       const doAdd = () => {
         const res = PC.store.addOption(L.type, addInput.value);
         if (!res.ok) {
           toast(res.reason === 'duplicate' ? 'Already in the list' : 'Type a name first', 'error');
           return;
         }
+        optionDrafts[L.type] = '';
         addInput.value = '';
         buildLists();
         toast('Added to ' + L.label.toLowerCase(), 'success');
@@ -231,11 +233,11 @@ PC.views.settings = (() => {
       card.querySelector('[data-reset]').addEventListener('click', async () => {
         const ok = await PC.ui.confirm({
           title: 'Reset ' + L.label,
-          text: 'This restores the factory list for ' + L.label.toLowerCase() + '. Your trades are never touched.',
+          text: 'This brings the default ' + L.label.toLowerCase() + ' back. Your trades stay safe.',
           confirmLabel: 'Reset',
           danger: false
         });
-        if (ok) { PC.store.resetOptions(L.type); buildLists(); toast(L.label + ' reset to defaults'); }
+        if (ok) { PC.store.resetOptions(L.type); buildLists(); toast(L.label + ' reset'); }
       });
 
       host.appendChild(card);
@@ -268,7 +270,7 @@ PC.views.settings = (() => {
       const fname = 'pipcore_backup_' + PC.store.todayKey().replace(/-/g, '') + '.json';
       PC.ui.download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), fname);
       PC.tg.haptic('medium');
-      toast('Backup downloaded', 'success');
+      toast('Backup file downloaded', 'success');
     });
 
     $('#restoreBtn', root).addEventListener('click', () => $('#restoreFile', root).click());
@@ -280,23 +282,30 @@ PC.views.settings = (() => {
       reader.onload = async () => {
         let json = null;
         try { json = JSON.parse(reader.result); } catch (err) {}
-        if (!PC.store.isValidBackup(json)) { toast('Not a valid PipCore backup', 'error'); return; }
+        if (!PC.store.isValidBackup(json)) { toast('This backup file is not valid', 'error'); return; }
+        const tradeCount = Array.isArray(json.trades) ? json.trades.length : 0;
+        const hasSettings = !!(json.settings && typeof json.settings === 'object');
         const body = el(
           '<div>' +
-            '<p class="t-sm" style="line-height:2">BACKUP FOUND: ' + (Array.isArray(json.trades) ? json.trades.length : 0) + ' TRADES. HOW SHOULD IT BE APPLIED?</p>' +
+            '<p class="t-sm" style="line-height:2">Found a backup with ' + tradeCount + ' trades' + (hasSettings ? ' and your app settings' : '') + '. What do you want to do?</p>' +
             '<div class="btn-row mt-4">' +
               '<button class="btn btn--ghost" data-mode="merge">' + icon('plus', 13) + 'Merge</button>' +
               '<button class="btn btn--danger" data-mode="replace" data-armed="true">' + icon('refresh', 13) + 'Replace</button>' +
             '</div>' +
-            '<p class="t-xs t-faint mt-3" style="line-height:2">MERGE ADDS MISSING TRADES. REPLACE REWRITES THE WHOLE JOURNAL.</p>' +
+            '<p class="t-xs t-faint mt-3" style="line-height:2">Merge adds what is missing. Replace overwrites your current data.</p>' +
           '</div>'
         );
-        const sheet = PC.ui.openSheet(body, { title: 'Restore Backup', icon: 'upload' });
+        const sheet = PC.ui.openSheet(body, { title: 'Import backup', icon: 'upload' });
         body.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
           PC.ui.closeSheet(sheet);
           const res = PC.store.restore(json, b.dataset.mode);
-          toast(res.ok ? 'Backup restored' : 'Restore failed', res.ok ? 'success' : 'error');
-          if (res.ok) buildLists();
+          toast(res.ok ? 'Backup imported' : 'Import failed', res.ok ? 'success' : 'error');
+          if (res.ok) {
+            PC.app.applyTheme(PC.store.getSettings().theme, true);
+            buildPrefs();
+            buildLists();
+            PC.bus.emit('repaint');
+          }
         }));
       };
       reader.readAsText(file);
@@ -304,15 +313,15 @@ PC.views.settings = (() => {
 
     $('#resetOptsBtn', root).addEventListener('click', async () => {
       const ok = await PC.ui.confirm({
-        title: 'Reset All Options',
-        text: 'All five option lists return to factory defaults. Trade history is never removed by this action.',
-        confirmLabel: 'Reset All',
+        title: 'Reset all lists',
+        text: 'This resets setups, entries, timeframes, pairs and sessions. Your trades stay safe.',
+        confirmLabel: 'Reset all',
         danger: true
       });
       if (ok) {
         PC.store.LIST_KEYS.forEach((k) => PC.store.resetOptions(k));
         buildLists();
-        toast('Option lists reset', 'success');
+        toast('Trade lists reset', 'success');
       }
     });
 
@@ -320,16 +329,16 @@ PC.views.settings = (() => {
       const count = PC.store.getTrades().length;
       if (!count) { toast('Journal is already empty'); return; }
       const first = await PC.ui.confirm({
-        title: 'Delete All Trades',
-        text: 'You are about to erase ' + count + ' logged trades from this device. Export a backup first if you care about this data.',
+        title: 'Delete all trades',
+        text: 'This will remove ' + count + ' trades from this device. Make a backup first if you may need them later.',
         confirmLabel: 'Continue',
         danger: true
       });
       if (!first) return;
       const second = await PC.ui.confirm({
-        title: 'Final Confirmation',
-        text: 'Last chance. This permanently deletes every trade. There is no undo.',
-        confirmLabel: 'Delete Everything',
+        title: 'Final check',
+        text: 'Last chance. This will permanently delete every trade.',
+        confirmLabel: 'Delete all',
         danger: true
       });
       if (second) { PC.store.clearTrades(); toast('Journal wiped'); }
@@ -337,6 +346,16 @@ PC.views.settings = (() => {
   }
 
   function render() {
+    const active = document.activeElement;
+    const isEditingSettingsInput = !!(
+      active && root && root.contains(active) && (
+        active.matches('[data-add-input]') ||
+        active.matches('input, textarea, select') ||
+        active.isContentEditable
+      )
+    );
+
+    if (isEditingSettingsInput) return;
     buildPrefs();
     buildLists();
   }

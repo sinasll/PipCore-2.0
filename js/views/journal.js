@@ -32,7 +32,7 @@ PC.views.journal = (() => {
     const defDate = seed ? seed.date : (prefillDate || S.todayKey());
     const defTime = seed ? seed.time : String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
 
-    function opts(list, sel) {
+    function optionsHtml(list, sel) {
       return S.getList(list).map((v) =>
         '<option value="' + esc(v) + '"' + (v === sel ? ' selected' : '') + '>' + esc(v) + '</option>'
       ).join('');
@@ -45,14 +45,14 @@ PC.views.journal = (() => {
           '<div class="field"><label>Time</label><input type="time" class="input" id="fTime" value="' + esc(defTime) + '"></div>',
         '</div>',
         '<div class="grid-2">',
-          '<div class="field"><label>Session</label><div class="select-wrap"><select class="select" id="fSession">' + opts('sessions', seed ? seed.session : '') + '</select></div></div>',
-          '<div class="field"><label>Pair</label><div class="select-wrap"><select class="select" id="fPair">' + opts('pairs', seed ? seed.pair : '') + '</select></div></div>',
+          '<div class="field"><label>Session</label><div class="select-wrap"><select class="select" id="fSession">' + optionsHtml('sessions', seed ? seed.session : '') + '</select></div></div>',
+          '<div class="field"><label>Pair</label><div class="select-wrap"><select class="select" id="fPair">' + optionsHtml('pairs', seed ? seed.pair : '') + '</select></div></div>',
         '</div>',
         '<div class="grid-2">',
-          '<div class="field"><label>Setup</label><div class="select-wrap"><select class="select" id="fSetup">' + opts('setups', seed ? seed.setup : '') + '</select></div></div>',
-          '<div class="field"><label>Entry</label><div class="select-wrap"><select class="select" id="fEntry">' + opts('entries', seed ? seed.entry : '') + '</select></div></div>',
+          '<div class="field"><label>Setup</label><div class="select-wrap"><select class="select" id="fSetup">' + optionsHtml('setups', seed ? seed.setup : '') + '</select></div></div>',
+          '<div class="field"><label>Entry</label><div class="select-wrap"><select class="select" id="fEntry">' + optionsHtml('entries', seed ? seed.entry : '') + '</select></div></div>',
         '</div>',
-        '<div class="field"><label>Timeframe</label><div class="select-wrap"><select class="select" id="fTimeframe">' + opts('timeframes', seed ? seed.timeframe : '') + '</select></div></div>',
+        '<div class="field"><label>Timeframe</label><div class="select-wrap"><select class="select" id="fTimeframe">' + optionsHtml('timeframes', seed ? seed.timeframe : '') + '</select></div></div>',
         '<div class="field"><label>Direction</label><div id="fDir"></div></div>',
         '<div class="field"><label>Pips</label>',
           '<div class="stepper">',
@@ -339,9 +339,9 @@ PC.views.journal = (() => {
     if (fmt === 'csv') {
       const line = (arr) => arr.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(',');
       const csv = [line(headers)].concat(rows.map(line)).join('\n');
-      ok = await PC.ui.download(new Blob([csv], { type: 'text/csv' }), 'pipcore_trades_' + stamp + '.csv');
+      ok = await PC.ui.download(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }), 'pipcore_trades_' + stamp + '.csv');
     } else if (fmt === 'json') {
-      ok = await PC.ui.download(new Blob([JSON.stringify({ app: 'PipCore', exportedAt: new Date().toISOString(), trades }, null, 2)], { type: 'application/json' }), 'pipcore_trades_' + stamp + '.json');
+      ok = await PC.ui.download(new Blob([JSON.stringify({ app: 'PipCore', exportedAt: new Date().toISOString(), trades }, null, 2)], { type: 'application/json;charset=utf-8' }), 'pipcore_trades_' + stamp + '.json');
     } else if (fmt === 'pdf' && window.jspdf && window.jspdf.jsPDF) {
       try {
         const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
@@ -360,7 +360,7 @@ PC.views.journal = (() => {
       } catch (e) { toast('PDF failed — try CSV', 'error'); return; }
     } else {
       const txt = rows.map((r) => headers.map((h, i) => h + ': ' + r[i]).join('\n')).join('\n\n-----\n\n');
-      ok = await PC.ui.download(new Blob([txt], { type: 'text/plain' }), 'pipcore_trades_' + stamp + '.txt');
+      ok = await PC.ui.download(new Blob([txt], { type: 'text/plain;charset=utf-8' }), 'pipcore_trades_' + stamp + '.txt');
     }
     if (ok) toast('Export file ready to save', 'success');
   }

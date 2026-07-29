@@ -210,11 +210,43 @@ PC.ui = (() => {
     return 'application/octet-stream';
   }
 
+  function inTelegramMiniApp() {
+    const tg = window.Telegram && window.Telegram.WebApp;
+    return !!(tg || window.TelegramWebviewProxy || window.parent !== window);
+  }
+
+  async function shareFile(file) {
+    if (!file || !navigator.share) return null;
+    try {
+      await navigator.share({ files: [file] });
+      return true;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return false;
+    }
+    try {
+      if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file] });
+        return true;
+      }
+    } catch (e) {
+      if (e && e.name === 'AbortError') return false;
+    }
+    return null;
+  }
+
   async function download(blob, filename) {
     const type = (blob && blob.type) || mimeFromFilename(filename);
     const ext = '.' + String(filename || 'file').split('.').pop();
     const acceptType = type || 'application/octet-stream';
-    const file = typeof File !== 'undefined' ? new File([blob], filename, { type: acceptType }) : null;
+    const outBlob = blob instanceof Blob ? blob : new Blob([blob], { type: acceptType });
+    const file = typeof File !== 'undefined'
+      ? new File([outBlob], filename, { type: acceptType, lastModified: Date.now() })
+      : null;
+
+    if (inTelegramMiniApp()) {
+      const shared = await shareFile(file);
+      if (shared !== null) return shared;
+    }
 
     if (window.showSaveFilePicker) {
       try {
@@ -223,7 +255,7 @@ PC.ui = (() => {
           types: [{ description: 'Exported file', accept: { [acceptType]: [ext] } }]
         });
         const writable = await handle.createWritable();
-        await writable.write(blob);
+        await writable.write(outBlob);
         await writable.close();
         return true;
       } catch (e) {
@@ -231,23 +263,18 @@ PC.ui = (() => {
       }
     }
 
-    if (file && navigator.share && navigator.canShare) {
-      try {
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: filename, text: filename });
-          return true;
-        }
-      } catch (e) {
-        if (e && e.name === 'AbortError') return false;
-      }
+    if (file) {
+      const shared = await shareFile(file);
+      if (shared !== null) return shared;
     }
 
     try {
-      const url = URL.createObjectURL(new Blob([blob], { type: acceptType }));
+      const url = URL.createObjectURL(outBlob);
       const a = document.createElement('a');
       a.href = url;
       a.download = filename;
       a.rel = 'noopener';
+      a.target = '_blank';
       a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
@@ -260,12 +287,13 @@ PC.ui = (() => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
         reader.onerror = reject;
-        reader.readAsDataURL(new Blob([blob], { type: acceptType }));
+        reader.readAsDataURL(outBlob);
       });
       const a = document.createElement('a');
       a.href = dataUrl;
       a.download = filename;
       a.rel = 'noopener';
+      a.target = '_blank';
       a.style.display = 'none';
       document.body.appendChild(a);
       a.click();

@@ -62,7 +62,6 @@ PC.views.settings = (() => {
         '<div class="card t-c card--pad-lg">',
           '<img src="assets/mark.png" alt="PipCore" style="width:64px;height:64px;border-radius:16px;border:1px solid var(--line-strong);margin:0 auto 14px;display:block">',
           '<div class="h-2">PIPCORE</div>',
-          '<div class="t-xs t-dim" style="margin-top:8px;letter-spacing:.14em">VERSION 2.0.0</div>',
           '<p class="t-xs t-dim" style="margin-top:16px;line-height:2">A simple trading journal to help you stay sharp and consistent.</p>',
         '</div>',
       '</div>',
@@ -269,7 +268,7 @@ PC.views.settings = (() => {
     $('#backupBtn', root).addEventListener('click', async () => {
       const data = PC.store.backup();
       const fname = 'pipcore_backup_' + PC.store.todayKey().replace(/-/g, '') + '.json';
-      const ok = await PC.ui.download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), fname);
+      const ok = await PC.ui.download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' }), fname);
       if (!ok) return;
       PC.tg.haptic('medium');
       toast('Backup file ready to save', 'success');

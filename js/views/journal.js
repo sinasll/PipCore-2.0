@@ -327,20 +327,21 @@ PC.views.journal = (() => {
   /* ---------------------------------------------------------
      Export
   --------------------------------------------------------- */
-  function exportTrades() {
+  async function exportTrades() {
     const trades = filteredTrades();
     if (!trades.length) { toast('No trades to export', 'error'); return; }
     const fmt = $('#exportFormat').value;
     const stamp = PC.store.todayKey().replace(/-/g, '');
     const headers = ['Date', 'Time', 'Pair', 'Direction', 'Session', 'Setup', 'Entry', 'Timeframe', 'Pips', 'Pips(Signed)', 'Outcome'];
     const rows = trades.map((t) => [t.date, t.time, t.pair, t.buySell, t.session, t.setup, t.entry, t.timeframe, String(t.pips), String(PC.store.signedPips(t)), t.outcome]);
+    let ok = false;
 
     if (fmt === 'csv') {
       const line = (arr) => arr.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(',');
       const csv = [line(headers)].concat(rows.map(line)).join('\n');
-      PC.ui.download(new Blob([csv], { type: 'text/csv' }), 'pipcore_trades_' + stamp + '.csv');
+      ok = await PC.ui.download(new Blob([csv], { type: 'text/csv' }), 'pipcore_trades_' + stamp + '.csv');
     } else if (fmt === 'json') {
-      PC.ui.download(new Blob([JSON.stringify({ app: 'PipCore', exportedAt: new Date().toISOString(), trades }, null, 2)], { type: 'application/json' }), 'pipcore_trades_' + stamp + '.json');
+      ok = await PC.ui.download(new Blob([JSON.stringify({ app: 'PipCore', exportedAt: new Date().toISOString(), trades }, null, 2)], { type: 'application/json' }), 'pipcore_trades_' + stamp + '.json');
     } else if (fmt === 'pdf' && window.jspdf && window.jspdf.jsPDF) {
       try {
         const doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
@@ -355,13 +356,13 @@ PC.views.journal = (() => {
           doc.text(lineTxt, 40, y);
           y += 15;
         });
-        doc.save('pipcore_trades_' + stamp + '.pdf');
+        ok = await PC.ui.download(doc.output('blob'), 'pipcore_trades_' + stamp + '.pdf');
       } catch (e) { toast('PDF failed — try CSV', 'error'); return; }
     } else {
       const txt = rows.map((r) => headers.map((h, i) => h + ': ' + r[i]).join('\n')).join('\n\n-----\n\n');
-      PC.ui.download(new Blob([txt], { type: 'text/plain' }), 'pipcore_trades_' + stamp + '.txt');
+      ok = await PC.ui.download(new Blob([txt], { type: 'text/plain' }), 'pipcore_trades_' + stamp + '.txt');
     }
-    toast('Export ready', 'success');
+    if (ok) toast('Export file ready to save', 'success');
   }
 
   /* ---------------------------------------------------------

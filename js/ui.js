@@ -201,14 +201,79 @@ PC.ui = (() => {
   }
 
   /* ---------- file download ---------- */
-  function download(blob, filename) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 800);
+  function mimeFromFilename(filename) {
+    const ext = String(filename || '').toLowerCase().split('.').pop();
+    if (ext === 'csv') return 'text/csv';
+    if (ext === 'json') return 'application/json';
+    if (ext === 'pdf') return 'application/pdf';
+    if (ext === 'txt') return 'text/plain';
+    return 'application/octet-stream';
+  }
+
+  async function download(blob, filename) {
+    const type = (blob && blob.type) || mimeFromFilename(filename);
+    const ext = '.' + String(filename || 'file').split('.').pop();
+    const acceptType = type || 'application/octet-stream';
+    const file = typeof File !== 'undefined' ? new File([blob], filename, { type: acceptType }) : null;
+
+    if (window.showSaveFilePicker) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: filename,
+          types: [{ description: 'Exported file', accept: { [acceptType]: [ext] } }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return true;
+      } catch (e) {
+        if (e && e.name === 'AbortError') return false;
+      }
+    }
+
+    if (file && navigator.share && navigator.canShare) {
+      try {
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: filename, text: filename });
+          return true;
+        }
+      } catch (e) {
+        if (e && e.name === 'AbortError') return false;
+      }
+    }
+
+    try {
+      const url = URL.createObjectURL(new Blob([blob], { type: acceptType }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.rel = 'noopener';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1200);
+      return true;
+    } catch (e) {}
+
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(new Blob([blob], { type: acceptType }));
+      });
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = filename;
+      a.rel = 'noopener';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => a.remove(), 800);
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   return { $, $$, esc, el, icon, fmtPips, fmtPct, fmtRatio, fmtDate, toast, openSheet, closeSheet, confirm, prompt, segment, switchControl, emptyState, download };

@@ -362,7 +362,7 @@ PC.views.journal = (() => {
       const txt = rows.map((r) => headers.map((h, i) => h + ': ' + r[i]).join('\n')).join('\n\n-----\n\n');
       ok = await PC.ui.download(new Blob([txt], { type: 'text/plain;charset=utf-8' }), 'pipcore_trades_' + stamp + '.txt');
     }
-    if (ok) toast('Export file ready to save', 'success');
+    if (ok) toast('File exported', 'success');
   }
 
   /* ---------------------------------------------------------

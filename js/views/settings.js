@@ -271,7 +271,7 @@ PC.views.settings = (() => {
       const ok = await PC.ui.download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' }), fname);
       if (!ok) return;
       PC.tg.haptic('medium');
-      toast('Backup file ready to save', 'success');
+      toast('Backup file saved', 'success');
     });
 
     $('#restoreBtn', root).addEventListener('click', () => $('#restoreFile', root).click());

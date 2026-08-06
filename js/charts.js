@@ -129,4 +129,3 @@ PC.charts = (() => {
 
   return { equity };
 })();
-

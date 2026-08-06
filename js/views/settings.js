@@ -102,6 +102,73 @@ PC.views.settings = (() => {
     ));
     host.appendChild(themeRow);
 
+    // app font — preserves the existing pixel style and adds two alternatives
+    const fontRow = el(
+      '<div class="row">' +
+        '<div class="row__main"><div class="row__title">Font</div><div class="row__desc">Choose the app typeface.</div></div>' +
+        '<div class="row__end"></div>' +
+      '</div>'
+    );
+    const fontSelect = el('<select class="input" aria-label="App font" style="width:158px;max-width:42vw;min-width:0"></select>');
+    const fontOptions = PC.store.FONT_OPTIONS || [
+      { value: 'pixel', label: 'Press Start 2P' },
+      { value: 'inter', label: 'Inter' },
+      { value: 'jetbrains', label: 'JetBrains Mono' }
+    ];
+    fontOptions.forEach((option) => {
+      const item = document.createElement('option');
+      item.value = option.value;
+      item.textContent = option.label;
+      fontSelect.appendChild(item);
+    });
+    fontSelect.value = s.font;
+    fontSelect.addEventListener('change', () => {
+      PC.app.applyTypography(fontSelect.value, PC.store.getSettings().fontSize);
+      PC.bus.emit('repaint'); // redraw canvas labels in the newly selected font
+    });
+    fontRow.querySelector('.row__end').appendChild(fontSelect);
+    host.appendChild(fontRow);
+
+    // font size
+    const minFontSize = PC.store.FONT_SIZE_MIN || 10;
+    const maxFontSize = PC.store.FONT_SIZE_MAX || 150;
+    const sizeRow = el(
+      '<div class="row">' +
+        '<div class="row__main"><div class="row__title">Font size</div><div class="row__desc">Adjust text size from 10% to 150%.</div></div>' +
+        '<div class="row__end"></div>' +
+      '</div>'
+    );
+    const sizeControl = el('<div style="display:flex;align-items:center;gap:8px;min-width:0"></div>');
+    const sizeRange = document.createElement('input');
+    sizeRange.type = 'range';
+    sizeRange.min = minFontSize;
+    sizeRange.max = maxFontSize;
+    sizeRange.step = '1';
+    sizeRange.value = s.fontSize;
+    sizeRange.setAttribute('aria-label', 'Font size');
+    sizeRange.style.cssText = 'width:122px;max-width:30vw;min-width:80px;accent-color:var(--accent);cursor:pointer';
+    const sizeValue = el('<output class="chip" aria-live="polite" style="min-width:44px;padding-left:7px;padding-right:7px;text-align:center"></output>');
+    const showSize = () => {
+      const value = Number(sizeRange.value);
+      sizeValue.textContent = value + '%';
+      sizeRange.setAttribute('aria-valuetext', value + '%');
+    };
+    showSize();
+    sizeRange.addEventListener('input', () => {
+      showSize();
+      // Preview while dragging; save only once the native range control commits.
+      PC.app.applyTypography(PC.store.getSettings().font, Number(sizeRange.value), true);
+    });
+    sizeRange.addEventListener('change', () => {
+      const value = Number(sizeRange.value);
+      PC.app.applyTypography(PC.store.getSettings().font, value);
+      PC.bus.emit('repaint'); // includes chart text at the new scale
+    });
+    sizeControl.appendChild(sizeRange);
+    sizeControl.appendChild(sizeValue);
+    sizeRow.querySelector('.row__end').appendChild(sizeControl);
+    host.appendChild(sizeRow);
+
     // week start
     const wkRow = el(
       '<div class="row">' +
@@ -302,7 +369,9 @@ PC.views.settings = (() => {
           const res = PC.store.restore(json, b.dataset.mode);
           toast(res.ok ? 'Backup imported' : 'Import failed', res.ok ? 'success' : 'error');
           if (res.ok) {
-            PC.app.applyTheme(PC.store.getSettings().theme, true);
+            const restoredSettings = PC.store.getSettings();
+            PC.app.applyTheme(restoredSettings.theme, true);
+            PC.app.applyTypography(restoredSettings.font, restoredSettings.fontSize, true);
             buildPrefs();
             buildLists();
             PC.bus.emit('repaint');

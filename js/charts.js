@@ -107,7 +107,10 @@ PC.charts = (() => {
 
     /* min/max labels */
     try {
-      ctx.font = '7px "Press Start 2P", monospace';
+      const chartFont = cssVar('--pc-font-family') || '"Press Start 2P", monospace';
+      const requestedScale = parseFloat(cssVar('--pc-font-scale'));
+      const fontScale = Number.isFinite(requestedScale) ? requestedScale : 1;
+      ctx.font = (7 * fontScale).toFixed(2) + 'px ' + chartFont;
       ctx.fillStyle = dim;
       ctx.textAlign = 'left';
       ctx.fillText(PC.ui.fmtPips(max - pad), L, T - 3);

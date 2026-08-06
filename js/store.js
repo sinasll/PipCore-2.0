@@ -178,12 +178,34 @@ PC.store = (() => {
   }
 
   /* ---------- settings ---------- */
-  const SETTING_DEFAULTS = { theme: 'dark', weekStart: 'mon', haptics: true };
+  // Keep the keys compact so they are easy to include in backups, while the
+  // labels/stacks live in the UI layer. The original pixel font remains the
+  // default and the two additional choices are available to every install.
+  const FONT_OPTIONS = [
+    { value: 'pixel', label: 'Press Start 2P' },
+    { value: 'inter', label: 'Inter' },
+    { value: 'jetbrains', label: 'JetBrains Mono' }
+  ];
+  const FONT_SIZE_MIN = 10;
+  const FONT_SIZE_MAX = 150;
+  const SETTING_DEFAULTS = {
+    theme: 'dark',
+    weekStart: 'mon',
+    haptics: true,
+    font: 'pixel',
+    fontSize: 100
+  };
+
   function normalizeSettings(input) {
     const next = Object.assign({}, SETTING_DEFAULTS, input && typeof input === 'object' ? input : {});
     next.theme = next.theme === 'light' ? 'light' : 'dark';
     next.weekStart = next.weekStart === 'sun' ? 'sun' : 'mon';
     next.haptics = !!next.haptics;
+    next.font = FONT_OPTIONS.some((option) => option.value === next.font) ? next.font : SETTING_DEFAULTS.font;
+    const requestedSize = Number(next.fontSize);
+    next.fontSize = Number.isFinite(requestedSize)
+      ? Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, Math.round(requestedSize)))
+      : SETTING_DEFAULTS.fontSize;
     return next;
   }
   function getSettings() {
@@ -287,7 +309,7 @@ PC.store = (() => {
   }
 
   return {
-    K, DEFAULTS, LIST_KEYS,
+    K, DEFAULTS, LIST_KEYS, FONT_OPTIONS, FONT_SIZE_MIN, FONT_SIZE_MAX,
     migrate,
     getTrades, saveTrades, addTrade, updateTrade, deleteTrade, duplicateTrade, clearTrades,
     getList, addOption, renameOption, removeOption, moveOption, resetOptions,

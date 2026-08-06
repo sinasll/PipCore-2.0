@@ -12,6 +12,77 @@ PC.app = (() => {
   let current = 'home';
   let pendingJournalPrefill = null;
 
+  /* ---------- typography ---------- */
+  // The first option preserves PipCore's existing pixel look. The other two
+  // stacks intentionally include dependable system fallbacks if a webfont is
+  // unavailable (for example, in an offline Telegram webview).
+  const FONT_STACKS = {
+    pixel: '"Press Start 2P", "Courier New", monospace',
+    inter: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    jetbrains: '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace'
+  };
+  let baseRootFontSize = null;
+
+  function clampFontSize(value) {
+    const min = PC.store.FONT_SIZE_MIN || 10;
+    const max = PC.store.FONT_SIZE_MAX || 150;
+    const number = Number(value);
+    if (!Number.isFinite(number)) return 100;
+    return Math.min(max, Math.max(min, Math.round(number)));
+  }
+
+  function ensureTypographyFonts() {
+    if (document.getElementById('pc-typography-fonts')) return;
+    const link = document.createElement('link');
+    link.id = 'pc-typography-fonts';
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap';
+    // Canvas text needs a repaint after the async webfont stylesheet arrives.
+    link.addEventListener('load', () => { if (PC.bus) PC.bus.emit('repaint'); });
+    document.head.appendChild(link);
+  }
+
+  function ensureTypographyStyles() {
+    ensureTypographyFonts();
+    if (document.getElementById('pc-typography-style')) return;
+    const style = document.createElement('style');
+    style.id = 'pc-typography-style';
+    style.textContent =
+      'body, body * { font-family: var(--pc-font-family, "Press Start 2P", monospace) !important; }';
+    document.head.appendChild(style);
+  }
+
+  function applyTypography(font, fontSize, silent) {
+    const saved = PC.store.getSettings();
+    const selectedFont = FONT_STACKS[font] ? font : (FONT_STACKS[saved.font] ? saved.font : 'pixel');
+    const selectedSize = clampFontSize(fontSize === undefined || fontSize === null ? saved.fontSize : fontSize);
+    const root = document.documentElement;
+
+    ensureTypographyStyles();
+    root.style.setProperty('--pc-font-family', FONT_STACKS[selectedFont]);
+    root.style.setProperty('--pc-font-scale', String(selectedSize / 100));
+    root.setAttribute('data-font', selectedFont);
+    if (document.body) document.body.setAttribute('data-font', selectedFont);
+
+    // Scale the root from its original computed size. This keeps 100% visually
+    // identical to the existing app while letting rem/em typography follow the
+    // user-selected 10%–150% range.
+    if (baseRootFontSize === null) {
+      const measured = parseFloat(window.getComputedStyle(root).fontSize);
+      baseRootFontSize = Number.isFinite(measured) && measured > 0 ? measured : 16;
+    }
+    root.style.fontSize = (baseRootFontSize * selectedSize / 100).toFixed(3) + 'px';
+
+    if (!silent) {
+      PC.store.updateSettings({ font: selectedFont, fontSize: selectedSize });
+      PC.tg.haptic('light');
+    }
+  }
+
+  function getFontStack(font) {
+    return FONT_STACKS[font] || FONT_STACKS.pixel;
+  }
+
   /* ---------- theme ---------- */
   function paintThemeToggle(theme) {
     const btn = PC.ui.$('#themeToggle');
@@ -111,7 +182,9 @@ PC.app = (() => {
   /* ---------- boot ---------- */
   function boot() {
     PC.store.migrate();
-    applyTheme(PC.store.getSettings().theme, true);
+    const settings = PC.store.getSettings();
+    applyTheme(settings.theme, true);
+    applyTypography(settings.font, settings.fontSize, true);
 
     buildShell();
 
@@ -124,7 +197,11 @@ PC.app = (() => {
     PC.bus.on('trades', repaint);
     PC.bus.on('options', repaint);
     PC.bus.on('repaint', repaint);
-    PC.bus.on('settings', () => { /* live-theme already handled */ });
+    PC.bus.on('settings', (settings) => {
+      // Settings can also arrive through a restored backup, so keep type and
+      // size live even when they were not changed from the Settings screen.
+      if (settings) applyTypography(settings.font, settings.fontSize, true);
+    });
 
     repaint();
 
@@ -151,5 +228,5 @@ PC.app = (() => {
 
   document.addEventListener('DOMContentLoaded', boot);
 
-  return { go, toggleTheme, applyTheme, currentTab, TABS };
+  return { go, toggleTheme, applyTheme, applyTypography, getFontStack, currentTab, TABS };
 })();
